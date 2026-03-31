@@ -209,15 +209,16 @@ const SealDetector = (() => {
                         const txt = lineObj.text.trim().toUpperCase();
 
                         let lineName = 'OTHER';
-                        if (txt.startsWith('HLC')) lineName = 'HAPAG-LLOYD';
-                        else if (txt.startsWith('YM')) lineName = 'YANG MING';
-                        else if (/^[0-9]{2,3}/.test(txt)) lineName = 'HMM';
+                        if (txt.includes('MSC')) lineName = 'MSC';
+                        else if (txt.includes('YM')) lineName = 'YML';
+                        else if (txt.includes('HM')) lineName = 'HMM';
+                        else if (txt.includes('HL')) lineName = 'HPL';
 
                         const seal = {
                             id: i + 1,
                             line: lineName,
                             number: txt,
-                            color: i === 0 ? '#10b981' : (i === 1 ? '#06b6d4' : '#f97316'), // 0 index green
+                            color: lineName === 'MSC' ? '#eab308' : (lineName === 'YML' ? '#3b82f6' : (lineName === 'HMM' ? '#06b6d4' : (lineName === 'HPL' ? '#f97316' : '#10b981'))),
                             confidence: Math.max((lineObj.confidence || 75) / 100, 0.7), // 최소 70% 보장 (UI용)
                             box: {
                                 rx: lineObj.bbox.x0 / W, ry: lineObj.bbox.y0 / H,

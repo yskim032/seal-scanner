@@ -358,6 +358,11 @@
             color: #fdba74;
         }
 
+        .badge-msc {
+            background: rgba(234, 179, 8, 0.15);
+            color: #fde047;
+        }
+
         .seal-num {
             font-family: 'JetBrains Mono', monospace;
             font-size: 1.05rem;
@@ -589,9 +594,10 @@
         });
 
         function getBadgeCls(line) {
-            if (line === 'YANG MING') return 'badge-ym';
+            if (line === 'YML') return 'badge-ym';
             if (line === 'HMM') return 'badge-hmm';
-            if (line === 'HAPAG-LLOYD') return 'badge-hl';
+            if (line === 'HPL') return 'badge-hl';
+            if (line === 'MSC') return 'badge-msc';
             return 'badge-ym';
         }
 

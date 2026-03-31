@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sealscan-v7';
+const CACHE_NAME = 'sealscan-v8';
 const ASSETS = [
     './', './index.html', './dashboard.html',
     './camera.js', './detector.js', './ocr.js', './style-mobile.css',
