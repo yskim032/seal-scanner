@@ -168,12 +168,12 @@ async function doScan() {
     SealDetector.clearDetections();
     const photoDataURL = captureCompressedPhoto(); // 사진 캡처
 
-    // YOLO 바운딩 박스 감지 
+    // 카메라 영상 기반 실제 AI/OCR 모델 분석
     const foundSeals = await SealDetector.detectAll((found, total, seal) => {
         countText.textContent = `${found}/${total} 씰 탐지`;
         sealsList.appendChild(buildSealCard(seal, null, photoDataURL));
 
-        // OCR 인식 (Tesseract 시뮬레이션)
+        // 타이핑 UI 애니메이션
         OCREngine.recognize(seal, (partial, full) => {
             const numEl = document.getElementById(`cardNum${seal.id}`);
             if (numEl) {
@@ -188,7 +188,10 @@ async function doScan() {
             }
         });
         App.detections.push(seal);
-    });
+    }, (statusMsg, progress) => {
+        if (progress !== undefined) countText.textContent = `${statusMsg} ${Math.round(progress * 100)}%`;
+        else countText.textContent = statusMsg;
+    }, capCanvas);
 
     App.capturedImageDataURL = photoDataURL;
     capturedImg.src = photoDataURL; photoRow.style.display = 'block';

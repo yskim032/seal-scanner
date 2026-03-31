@@ -177,16 +177,62 @@ const SealDetector = (() => {
         },
 
         // Simulate progressive detection (mimics real YOLO inference)
-        async detectAll(progressCallback) {
+        async detectAll(progressCallback, uiStatusCallback, capCanvasObj) {
             detections = [];
             detecting = true;
 
-            for (let i = 0; i < SEAL_DB.length; i++) {
-                const seal = SEAL_DB[i];
-                // Stagger detections to simulate real-time inference
-                await new Promise(r => setTimeout(r, 600 + i * 500));
-                detections.push({ ...seal });
-                if (progressCallback) progressCallback(i + 1, SEAL_DB.length, seal);
+            if (window.Tesseract && capCanvasObj) {
+                if (uiStatusCallback) uiStatusCallback("AI 모델 로딩중...");
+                try {
+                    const worker = await Tesseract.createWorker('eng', 1, {
+                        logger: m => {
+                            if (m.status === 'recognizing text' && uiStatusCallback) {
+                                uiStatusCallback("실제 텍스트 추출중...", m.progress);
+                            }
+                        }
+                    });
+                    const { data } = await worker.recognize(capCanvasObj);
+                    await worker.terminate();
+
+                    const validWords = (data.words || []).filter(w =>
+                        w.text.length >= 4 && /[a-zA-Z0-9]/.test(w.text) && w.confidence > 45
+                    ).sort((a, b) => b.confidence - a.confidence);
+
+                    const selected = validWords.slice(0, 3);
+                    const W = capCanvasObj.width;
+                    const H = capCanvasObj.height;
+
+                    for (let i = 0; i < selected.length; i++) {
+                        const w = selected[i];
+                        let lineName = 'OTHER';
+                        if (w.text.toUpperCase().startsWith('HLC')) lineName = 'HAPAG-LLOYD';
+                        else if (w.text.toUpperCase().startsWith('YM')) lineName = 'YANG MING';
+                        else if (/^[0-9]{2,3}/.test(w.text)) lineName = 'HMM';
+
+                        const seal = {
+                            id: i + 1,
+                            line: lineName,
+                            number: w.text.trim().toUpperCase(),
+                            color: i === 0 ? '#10b981' : (i === 1 ? '#06b6d4' : '#f97316'), // 0 index green
+                            confidence: w.confidence / 100,
+                            box: {
+                                rx: w.bbox.x0 / W, ry: w.bbox.y0 / H,
+                                rw: (w.bbox.x1 - w.bbox.x0) / W, rh: (w.bbox.y1 - w.bbox.y0) / H
+                            }
+                        };
+                        detections.push(seal);
+                        if (progressCallback) progressCallback(i + 1, selected.length, seal);
+                        await new Promise(r => setTimeout(r, 400));
+                    }
+                } catch (e) { console.error("OCR Error", e); }
+            } else {
+                console.warn("Real OCR Canvas missing, running simulation fallbacks");
+                for (let i = 0; i < SEAL_DB.length; i++) {
+                    const seal = SEAL_DB[i];
+                    await new Promise(r => setTimeout(r, 600 + i * 500));
+                    detections.push({ ...seal });
+                    if (progressCallback) progressCallback(i + 1, SEAL_DB.length, seal);
+                }
             }
 
             detecting = false;
