@@ -219,15 +219,17 @@ async function sendToTOS() {
     };
 
     try {
-        // 1. 디바이스 로컬 저장
+        // 1. 디바이스 로컬 저장 (사진 포함)
         const history = JSON.parse(localStorage.getItem('sealScanHistory') || '[]');
         history.unshift(payload);
         if (history.length > 50) history.splice(50);
         localStorage.setItem('sealScanHistory', JSON.stringify(history));
 
-        // 2. 외부 웹사이트 실시간 동기화를 위해 MQTT로 메세지 퍼블리시 (JSON)
+        // 2. 외부 웹사이트 실시간 동기화를 위해 MQTT로 메세지 퍼블리시
+        // 퍼블릭 무료 MQTT 서버의 메세지 용량 제한(약 64KB) 때문에 사진은 제외하고 텍스트만 전송합니다.
         if (mqttClient && mqttClient.connected) {
-            mqttClient.publish(TOPIC, JSON.stringify(payload));
+            const mqttPayload = { ...payload, capturedImage: null };
+            mqttClient.publish(TOPIC, JSON.stringify(mqttPayload));
         } else {
             console.warn("MQTT disconnected, data saved locally only.");
         }
