@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0a0f1e" />
+    <title>SealScan | Container Seal Scanner</title>
+    <meta name="description" content="컨테이너 씰 실시간 스캐닝 및 TOS 전송 - YOLO 객체 감지 기반" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style-mobile.css" />
+</head>
+
+<body>
+
+    <!-- ── TOP STATUS BAR ── -->
+    <div class="status-bar">
+        <div class="status-left">
+            <div class="app-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+                </svg>
+            </div>
+            <span class="app-name">SealScan</span>
+            <span class="app-ver">v2.0</span>
+        </div>
+        <div class="status-right">
+            <div class="conn-badge" id="connBadge">
+                <span class="conn-dot"></span>
+                <span id="connText">오프라인</span>
+            </div>
+            <div class="clock-mini" id="clockMini"></div>
+        </div>
+    </div>
+
+    <!-- ── MAIN CAMERA VIEW ── -->
+    <div class="camera-container" id="cameraContainer">
+
+        <!-- Live camera feed -->
+        <video id="videoFeed" autoplay playsinline muted></video>
+
+        <!-- Capture canvas (hidden) -->
+        <canvas id="captureCanvas" style="display:none"></canvas>
+
+        <!-- Overlay canvas for YOLO-style detection boxes -->
+        <canvas id="detectionCanvas"></canvas>
+
+        <!-- Corner frame -->
+        <div class="cam-frame">
+            <div class="frame-corner tl"></div>
+            <div class="frame-corner tr"></div>
+            <div class="frame-corner bl"></div>
+            <div class="frame-corner br"></div>
+        </div>
+
+        <!-- Scanning laser line -->
+        <div class="laser-line" id="laserLine"></div>
+
+        <!-- Detection count badge -->
+        <div class="detect-count-badge" id="detectCountBadge" style="display:none">
+            <span id="detectCountText">0 씰 감지</span>
+        </div>
+
+        <!-- Camera ready overlay -->
+        <div class="cam-ready-overlay" id="camReadyOverlay">
+            <div class="cam-ready-icon">📷</div>
+            <div class="cam-ready-title">카메라 준비</div>
+            <div class="cam-ready-sub">버튼을 눌러 카메라를 시작하세요</div>
+            <button class="btn-start-cam" onclick="startCamera()">카메라 시작</button>
+        </div>
+
+        <!-- Camera loading -->
+        <div class="cam-loading" id="camLoading" style="display:none">
+            <div class="spinner"></div>
+            <span>카메라 초기화 중...</span>
+        </div>
+
+        <!-- Top right camera controls -->
+        <div class="cam-controls-top">
+            <button class="cam-ctrl-btn" id="btnFlip" onclick="flipCamera()" title="카메라 전환">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
+                    <path d="M1 4v6h6M23 20v-6h-6" />
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                </svg>
+            </button>
+            <button class="cam-ctrl-btn" id="btnTorch" onclick="toggleTorch()" title="플래시">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+            </button>
+            <a href="dashboard.html" class="cam-ctrl-btn" title="대시보드">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- ── SCAN RESULT PANEL ── -->
+    <div class="result-panel" id="resultPanel">
+
+        <!-- Drag handle -->
+        <div class="drag-handle"></div>
+
+        <!-- Panel header -->
+        <div class="panel-header-row">
+            <div class="panel-title-group">
+                <span class="panel-title">스캔 결과</span>
+                <span class="scan-status-badge" id="scanStatusBadge">대기중</span>
+            </div>
+            <button class="btn-history" onclick="window.location='dashboard.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15">
+                    <path d="M12 8v4l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                </svg>
+                기록
+            </button>
+        </div>
+
+        <!-- Detected seals list -->
+        <div class="seals-list" id="sealsList">
+            <div class="empty-seals" id="emptySeals">
+                <div class="empty-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40">
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <path d="M8 21h8M12 17v4" />
+                        <circle cx="12" cy="10" r="2" stroke-dasharray="2 2" />
+                    </svg>
+                </div>
+                <span>카메라로 씰을 비추고<br />스캔 버튼을 눌러주세요</span>
+            </div>
+        </div>
+
+        <!-- Captured photo preview -->
+        <div class="photo-preview-row" id="photoPreviewRow" style="display:none">
+            <div class="photo-preview-label">📸 캡처된 이미지</div>
+            <img id="capturedPhoto" class="captured-img" src="" alt="captured seal" />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-row">
+            <button class="btn-scan-action" id="btnScanAction" onclick="doScan()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                <span id="btnScanText">씰 스캔</span>
+            </button>
+            <button class="btn-send-action" id="btnSendAction" onclick="sendToTOS()" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+                <span>TOS 전송</span>
+            </button>
+        </div>
+
+        <!-- TOS Config (collapsible) -->
+        <details class="tos-config">
+            <summary>⚙️ TOS 전송 설정</summary>
+            <div class="tos-config-body">
+                <div class="cfg-row">
+                    <label>터미널 코드</label>
+                    <input type="text" id="terminalCode" value="KRINC-T1" />
+                </div>
+                <div class="cfg-row">
+                    <label>작업 유형</label>
+                    <select id="operationType">
+                        <option value="IMPORT">수입 (IMPORT)</option>
+                        <option value="EXPORT">수출 (EXPORT)</option>
+                        <option value="TRANSSHIP">환적 (TRANSSHIP)</option>
+                    </select>
+                </div>
+                <div class="cfg-row">
+                    <label>담당자 ID</label>
+                    <input type="text" id="operatorId" value="OPR-001" />
+                </div>
+            </div>
+        </details>
+
+    </div>
+
+    <!-- ── SEND SUCCESS TOAST ── -->
+    <div class="toast" id="toast" style="display:none"></div>
+
+    <!-- ── SEND MODAL ── -->
+    <div class="modal-overlay" id="modalOverlay" style="display:none">
+        <div class="modal-card">
+            <div class="modal-success-icon">✓</div>
+            <h2>TOS 전송 완료!</h2>
+            <p id="modalDesc"></p>
+            <div class="modal-seals" id="modalSeals"></div>
+            <div class="modal-btns">
+                <button class="btn-modal-close" onclick="closeModal()">확인</button>
+                <a class="btn-modal-dash" href="dashboard.html">대시보드 보기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="detector.js"></script>
+    <script src="ocr.js"></script>
+    <script src="camera.js"></script>
+    <script>
+        // Register PWA service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => { });
+        }
+    </script>
+</body>
+
+</html>

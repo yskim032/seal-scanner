@@ -1,0 +1,855 @@
+/* ============================================================
+   SealScan Mobile PWA - Style Sheet
+   ============================================================ */
+
+:root {
+    --bg: #0a0f1e;
+    --bg-panel: #0d1528;
+    --bg-card: #111827;
+    --cyan: #06b6d4;
+    --blue: #3b82f6;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --orange: #f97316;
+    --red: #ef4444;
+    --text: #f1f5f9;
+    --text-sec: #94a3b8;
+    --text-muted: #475569;
+    --border: rgba(255, 255, 255, 0.07);
+    --detect-green: #00ff88;
+    --detect-box-color: rgba(0, 255, 136, 0.85);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* ── STATUS BAR ── */
+.status-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: rgba(10, 15, 30, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 200;
+}
+
+.status-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-logo {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.app-name {
+    font-size: 1rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.app-ver {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 100px;
+    padding: 1px 6px;
+}
+
+.status-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.conn-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    color: var(--text-sec);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 100px;
+    padding: 3px 9px;
+}
+
+.conn-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.3s;
+}
+
+.conn-badge.online .conn-dot {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse-dot 1.5s infinite;
+}
+
+.conn-badge.online {
+    color: var(--green);
+}
+
+@keyframes pulse-dot {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.clock-mini {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--cyan);
+}
+
+/* ── CAMERA CONTAINER ── */
+.camera-container {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    height: calc(52vh);
+    background: #000;
+    overflow: hidden;
+}
+
+#videoFeed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+#detectionCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ── CAM FRAME ── */
+.cam-frame {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 11;
+}
+
+.frame-corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: var(--cyan);
+    border-style: solid;
+    opacity: 0.8;
+}
+
+.frame-corner.tl {
+    top: 8px;
+    left: 8px;
+    border-width: 2px 0 0 2px;
+}
+
+.frame-corner.tr {
+    top: 8px;
+    right: 8px;
+    border-width: 2px 2px 0 0;
+}
+
+.frame-corner.bl {
+    bottom: 8px;
+    left: 8px;
+    border-width: 0 0 2px 2px;
+}
+
+.frame-corner.br {
+    bottom: 8px;
+    right: 8px;
+    border-width: 0 2px 2px 0;
+}
+
+/* ── LASER SCAN LINE ── */
+.laser-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(6, 182, 212, 0.4);
+    top: 30%;
+    display: none;
+    z-index: 12;
+    animation: laser-scan 2s linear infinite;
+}
+
+.laser-line.active {
+    display: block;
+}
+
+@keyframes laser-scan {
+    0% {
+        top: 5%;
+        opacity: 1;
+    }
+
+    90% {
+        top: 90%;
+        opacity: 1;
+    }
+
+    100% {
+        top: 90%;
+        opacity: 0;
+    }
+}
+
+/* ── DETECTION COUNT BADGE ── */
+.detect-count-badge {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 255, 136, 0.15);
+    border: 1px solid rgba(0, 255, 136, 0.4);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--detect-green);
+    z-index: 15;
+    backdrop-filter: blur(8px);
+    animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badge-pop {
+    from {
+        transform: translateX(-50%) scale(0.7);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* ── CAM OVERLAYS ── */
+.cam-ready-overlay,
+.cam-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 20;
+    gap: 12px;
+}
+
+.cam-ready-icon {
+    font-size: 3rem;
+}
+
+.cam-ready-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.cam-ready-sub {
+    font-size: 0.82rem;
+    color: var(--text-sec);
+    text-align: center;
+}
+
+.btn-start-cam {
+    margin-top: 8px;
+    background: linear-gradient(135deg, var(--blue), #2563eb);
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+}
+
+.cam-loading {
+    gap: 14px;
+    color: var(--text-sec);
+    font-size: 0.9rem;
+}
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── CAM CONTROLS (top-right) ── */
+.cam-controls-top {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 20;
+}
+
+.cam-ctrl-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.cam-ctrl-btn:hover,
+.cam-ctrl-btn.active {
+    background: rgba(59, 130, 246, 0.4);
+    border-color: var(--blue);
+}
+
+/* ── RESULT PANEL ── */
+.result-panel {
+    position: fixed;
+    top: calc(52px + 52vh);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+    padding: 0 0 24px;
+    z-index: 100;
+}
+
+.result-panel::-webkit-scrollbar {
+    display: none;
+}
+
+.drag-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 100px;
+    margin: 12px auto 8px;
+}
+
+.panel-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.scan-status-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    transition: all 0.3s;
+}
+
+.scan-status-badge.scanning {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--blue);
+}
+
+.scan-status-badge.detected {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--green);
+}
+
+.scan-status-badge.sent {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--cyan);
+}
+
+.btn-history {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-sec);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+/* ── SEALS LIST ── */
+.seals-list {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 60px;
+}
+
+.empty-seals {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.empty-icon-wrap {
+    opacity: 0.35;
+}
+
+/* ── SEAL RESULT CARD ── */
+.seal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: card-slide-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: border-color 0.3s;
+}
+
+.seal-card.confirmed {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+@keyframes card-slide-in {
+    from {
+        transform: translateY(12px) scale(0.96);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.seal-card-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.seal-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.seal-card-line {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+}
+
+.seal-card-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.seal-card-conf {
+    font-size: 0.7rem;
+    color: var(--green);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.seal-card-status {
+    flex-shrink: 0;
+    font-size: 1.3rem;
+}
+
+/* ── PHOTO PREVIEW ── */
+.photo-preview-row {
+    padding: 0 14px 10px;
+}
+
+.photo-preview-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-sec);
+    margin-bottom: 6px;
+}
+
+.captured-img {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+    max-height: 120px;
+}
+
+/* ── ACTION BUTTONS ── */
+.action-row {
+    display: flex;
+    gap: 10px;
+    padding: 0 14px 10px;
+}
+
+.btn-scan-action,
+.btn-send-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border: none;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-scan-action {
+    background: linear-gradient(135deg, var(--blue), #2563eb);
+    color: white;
+    box-shadow: 0 4px 18px rgba(59, 130, 246, 0.4);
+}
+
+.btn-scan-action:active {
+    transform: scale(0.96);
+}
+
+.btn-scan-action.scanning {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    animation: btn-pulse 0.7s infinite;
+}
+
+@keyframes btn-pulse {
+
+    0%,
+    100% {
+        transform: scale(1)
+    }
+
+    50% {
+        transform: scale(0.97)
+    }
+}
+
+.btn-send-action {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: white;
+    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+}
+
+.btn-send-action:active {
+    transform: scale(0.96);
+}
+
+.btn-send-action:disabled {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.btn-send-action.sending {
+    animation: btn-pulse 0.7s infinite;
+}
+
+/* ── TOS CONFIG ── */
+.tos-config {
+    margin: 0 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.tos-config summary {
+    padding: 12px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-sec);
+    cursor: pointer;
+    list-style: none;
+}
+
+.tos-config summary::-webkit-details-marker {
+    display: none;
+}
+
+.tos-config-body {
+    padding: 0 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cfg-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cfg-row label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.cfg-row input,
+.cfg-row select {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-size: 0.88rem;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+}
+
+.cfg-row input:focus,
+.cfg-row select:focus {
+    border-color: var(--blue);
+}
+
+.cfg-row select option {
+    background: var(--bg-card);
+}
+
+/* ── TOAST ── */
+.toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(16, 185, 129, 0.92);
+    color: #000;
+    font-weight: 700;
+    padding: 10px 22px;
+    border-radius: 100px;
+    font-size: 0.88rem;
+    z-index: 500;
+    animation: toast-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+}
+
+.toast.error {
+    background: rgba(239, 68, 68, 0.92);
+    color: white;
+}
+
+@keyframes toast-in {
+    from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 0;
+}
+
+.modal-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 24px 24px 0 0;
+    padding: 30px 24px 40px;
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    animation: modal-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-up {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.modal-success-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--green), #059669);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: white;
+    font-weight: 700;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.5);
+}
+
+.modal-card h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.modal-card p {
+    color: var(--text-sec);
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+}
+
+.modal-seals {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--cyan);
+    text-align: left;
+    margin-bottom: 20px;
+    white-space: pre-line;
+}
+
+.modal-btns {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-modal-close,
+.btn-modal-dash {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-modal-close {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-modal-dash {
+    background: linear-gradient(135deg, var(--blue), #2563eb);
+    border: none;
+    color: white;
+}
