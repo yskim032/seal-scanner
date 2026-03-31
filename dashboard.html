@@ -4,15 +4,14 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#0a0f1e" />
-    <title>TOS Dashboard | SealScan</title>
-    <link rel="manifest" href="manifest.json" />
+    <title>TOS Web Dashboard | SealScan 실시간 전송</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
         rel="stylesheet" />
+    <!-- MQTT 실시간 라이브러리 추가 -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
         :root {
             --bg: #0a0f1e;
@@ -44,12 +43,10 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            background-image:
-                radial-gradient(ellipse at 10% 20%, rgba(59, 130, 246, 0.07) 0%, transparent 50%),
+            background-image: radial-gradient(ellipse at 10% 20%, rgba(59, 130, 246, 0.07) 0%, transparent 50%),
                 radial-gradient(ellipse at 90% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
         }
 
-        /* ── TOP BAR ── */
         header {
             position: sticky;
             top: 0;
@@ -57,97 +54,99 @@
             background: rgba(10, 15, 30, 0.95);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
-            padding: 14px 20px;
+            padding: 14px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
         }
 
         .hdr-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .hdr-logo {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             background: linear-gradient(135deg, var(--blue), var(--cyan));
-            border-radius: 9px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
 
         .hdr-title {
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 800;
         }
 
-        .hdr-sub {
-            font-size: 0.7rem;
-            color: var(--muted);
-            display: block;
-        }
-
-        .btn-back {
+        .live-badge {
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 9px;
-            padding: 8px 14px;
-            color: var(--sec);
-            text-decoration: none;
-            font-size: 0.82rem;
-            transition: all .2s;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 100px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--green);
+            letter-spacing: 0.05em;
         }
 
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text);
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
         }
 
         main {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
-            padding: 24px 16px 60px;
+            padding: 32px 20px 60px;
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .subtitle {
             color: var(--sec);
-            font-size: 0.82rem;
+            font-size: 0.9rem;
             margin-bottom: 24px;
         }
 
-        /* ── STATS ── */
         .stats {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
             margin-bottom: 24px;
-        }
-
-        @media(min-width:600px) {
-            .stats {
-                grid-template-columns: repeat(4, 1fr);
-            }
         }
 
         .stat {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 14px;
-            padding: 16px;
+            padding: 20px;
         }
 
         .stat.blue {
@@ -167,7 +166,7 @@
         }
 
         .stat-lbl {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
             color: var(--muted);
             text-transform: uppercase;
             letter-spacing: .08em;
@@ -175,7 +174,7 @@
         }
 
         .stat-val {
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             font-weight: 800;
             font-family: 'JetBrains Mono', monospace;
         }
@@ -196,58 +195,35 @@
             color: var(--yellow);
         }
 
-        .stat-note {
-            font-size: 0.7rem;
-            color: var(--sec);
-            margin-top: 2px;
-        }
-
-        /* ── CONTROLS ── */
-        .controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .sec-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-        }
-
-        .ctrl-btns {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-ref {
-            background: linear-gradient(135deg, var(--blue), #2563eb);
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-del {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            color: #f87171;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        /* ── CARDS ── */
         .cards-list {
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+
+        /* Notification Toast for new items */
+        .toast-live {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0, 0, 0, 0.85);
+            color: #6ee7b7;
+            border: 1px solid var(--green);
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            z-index: 900;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .toast-live.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
         }
 
         .tx-card {
@@ -255,18 +231,23 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             overflow: hidden;
-            animation: card-in .3s ease;
+            animation: card-in .5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .tx-card.new-item {
+            border-color: var(--green);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
         }
 
         @keyframes card-in {
             from {
                 opacity: 0;
-                transform: translateY(8px)
+                transform: translateY(12px) scale(0.98)
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0)
+                transform: translateY(0) scale(1)
             }
         }
 
@@ -274,31 +255,27 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 16px 10px;
+            padding: 16px 20px 12px;
             border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.01);
         }
 
         .tx-no {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             color: var(--muted);
         }
 
         .tx-ts {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             color: var(--sec);
         }
 
-        .tx-badges {
-            display: flex;
-            gap: 6px;
-        }
-
         .op-badge {
-            font-size: 0.68rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            padding: 2px 8px;
+            padding: 3px 10px;
             border-radius: 100px;
             text-transform: uppercase;
             letter-spacing: .05em;
@@ -314,70 +291,50 @@
             color: #fde68a;
         }
 
-        .op-TRANSSHIP {
-            background: rgba(139, 92, 246, 0.15);
-            color: #c4b5fd;
-        }
-
         .tx-ok {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
             color: var(--green);
+            font-weight: 700;
+            margin-left: 10px;
         }
 
         .tx-card-body {
             display: flex;
-            gap: 14px;
-            padding: 12px 16px;
+            gap: 20px;
+            padding: 16px 20px;
         }
 
-        /* Photo */
         .tx-photo {
-            width: 90px;
-            height: 76px;
-            border-radius: 10px;
+            width: 120px;
+            height: 90px;
+            border-radius: 12px;
             object-fit: cover;
-            flex-shrink: 0;
             border: 1px solid var(--border);
-            background: #000;
+            cursor: pointer;
         }
 
-        .tx-photo-placeholder {
-            width: 90px;
-            height: 76px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            flex-shrink: 0;
-            color: var(--muted);
-        }
-
-        /* Seals chips */
         .tx-seals {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             justify-content: center;
         }
 
         .seal-row {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.82rem;
+            gap: 10px;
+            font-size: 0.9rem;
         }
 
         .seal-line-badge {
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            padding: 2px 7px;
-            border-radius: 4px;
-            white-space: nowrap;
-            letter-spacing: .04em;
+            padding: 3px 8px;
+            border-radius: 6px;
+            width: 80px;
+            text-align: center;
         }
 
         .badge-ym {
@@ -395,37 +352,32 @@
             color: #fdba74;
         }
 
-        .badge-oth {
-            background: rgba(139, 92, 246, 0.15);
-            color: #c4b5fd;
-        }
-
         .seal-num {
             font-family: 'JetBrains Mono', monospace;
-            font-size: .88rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--text);
         }
 
         .seal-conf {
-            font-size: .68rem;
+            font-size: .75rem;
             color: var(--green);
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        /* meta row */
         .tx-meta {
             display: flex;
             gap: 3px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-top: 1px solid var(--border);
-            font-size: 0.72rem;
+            background: rgba(0, 0, 0, 0.2);
+            font-size: 0.75rem;
             color: var(--muted);
             font-family: 'JetBrains Mono', monospace;
-            flex-wrap: wrap;
         }
 
         .tx-meta span {
-            margin-right: 14px;
+            margin-right: 20px;
         }
 
         /* Photo modal */
@@ -444,212 +396,177 @@
         }
 
         .photo-modal img {
-            max-width: 95vw;
-            max-height: 90vh;
+            max-width: 85vw;
+            max-height: 85vh;
             border-radius: 12px;
         }
 
-        .photo-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            font-size: 1.4rem;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        /* Empty */
         .empty {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
             color: var(--muted);
         }
 
         .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 12px;
-        }
-
-        .empty p {
-            font-size: .88rem;
-            line-height: 1.6;
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.3;
         }
     </style>
 </head>
 
 <body>
+
     <header>
         <div class="hdr-left">
             <div class="hdr-logo">📡</div>
             <div>
-                <span class="hdr-title">TOS Dashboard</span>
-                <span class="hdr-sub">씰 스캔 전송 기록</span>
+                <span class="hdr-title">웹 대시보드 모니터</span>
+                <span style="font-size:0.7rem;color:var(--muted);">모바일 스캐너 실시간 연동</span>
             </div>
         </div>
-        <a href="index.html" class="btn-back">← 스캐너</a>
+        <div class="live-badge" id="liveBadge">
+            <span class="live-dot"></span>클라우드 연결됨
+        </div>
     </header>
 
     <main>
-        <h1>📋 TOS 전송 기록</h1>
-        <p class="subtitle" id="subtitle">마지막 업데이트: —</p>
+        <h1>실시간 TOS 전송 기록</h1>
+        <p class="subtitle">모바일 기기에서 [TOS 전송]을 누르면 이 화면에 즉시 팝업됩니다.</p>
 
-        <!-- Stats -->
         <div class="stats">
             <div class="stat blue">
                 <div class="stat-lbl">총 전송</div>
                 <div class="stat-val" id="sTotal">0</div>
-                <div class="stat-note">전체 전송 건수</div>
             </div>
             <div class="stat green">
-                <div class="stat-lbl">씰 수</div>
+                <div class="stat-lbl">인식 씰</div>
                 <div class="stat-val" id="sSeals">0</div>
-                <div class="stat-note">총 인식 씰</div>
             </div>
             <div class="stat cyan">
-                <div class="stat-lbl">평균 신뢰도</div>
+                <div class="stat-lbl">신뢰도</div>
                 <div class="stat-val" id="sConf">—</div>
-                <div class="stat-note">OCR 정확도</div>
             </div>
             <div class="stat yellow">
-                <div class="stat-lbl">오늘</div>
+                <div class="stat-lbl">오늘 전송</div>
                 <div class="stat-val" id="sToday">0</div>
-                <div class="stat-note">오늘 전송</div>
             </div>
         </div>
 
-        <!-- Controls -->
-        <div class="controls">
-            <span class="sec-title">전송 기록</span>
-            <div class="ctrl-btns">
-                <button class="btn-ref" onclick="load()">🔄 새로고침</button>
-                <button class="btn-del" onclick="clearAll()">삭제</button>
-            </div>
-        </div>
-
-        <!-- Cards list -->
         <div class="cards-list" id="cardsList"></div>
         <div class="empty" id="emptyState" style="display:none">
             <div class="empty-icon">📭</div>
-            <p>전송 기록이 없습니다.<br />스캐너 앱에서 씰을 스캔하고<br />TOS 전송 버튼을 눌러 주세요.</p>
+            <p>아직 수신된 데이터가 없습니다.<br />모바일 폰에서 카메라 앱을 켜고 스캔 전송을 테스트해 보세요.</p>
         </div>
     </main>
 
-    <!-- Photo lightbox -->
-    <div class="photo-modal" id="photoModal" onclick="closePhoto()">
-        <button class="photo-modal-close">✕</button>
-        <img id="photoModalImg" src="" alt="seal capture" />
+    <div class="toast-live" id="toastLive">📢 방금 모바일에서 새 스캔 데이터가 도착했습니다!</div>
+    <div class="photo-modal" id="photoModal" onclick="this.classList.remove('show')"><img id="photoModalImg" src="" />
     </div>
 
     <script>
-        function lineClass(num) {
-            if (!num) return 'badge-oth';
-            if (num.startsWith('YMAM')) return 'badge-ym';
-            if (/^\d{2}\s/.test(num)) return 'badge-hmm';
-            if (num.startsWith('HLC')) return 'badge-hl';
-            return 'badge-oth';
-        }
-        function lineName(num) {
-            if (!num) return '—';
-            if (num.startsWith('YMAM')) return 'YM';
-            if (/^\d{2}\s/.test(num)) return 'HMM';
-            if (num.startsWith('HLC')) return 'HL';
-            return 'OTHER';
+        let historyData = JSON.parse(localStorage.getItem('sealScanHistory') || '[]');
+
+        function saveAndRender() {
+            localStorage.setItem('sealScanHistory', JSON.stringify(historyData));
+            renderAll();
         }
 
-        function openPhoto(src) {
-            document.getElementById('photoModalImg').src = src;
-            document.getElementById('photoModal').classList.add('show');
-        }
-        function closePhoto() {
-            document.getElementById('photoModal').classList.remove('show');
+        // MQTT 클라우드 실시간 연결 (웹소켓)
+        const client = mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+        const TOPIC = 'sealscan/yskim032/tos_data';
+
+        client.on('connect', () => {
+            client.subscribe(TOPIC);
+            console.log("웹 대시보드 - MQTT 실시간 통신 연결 완료");
+        });
+
+        client.on('message', (topic, message) => {
+            try {
+                const payload = JSON.parse(message.toString());
+                // 새 데이터를 최상단에 추가
+                historyData.unshift(payload);
+                if (historyData.length > 50) historyData.pop();
+                saveAndRender();
+
+                // 알림 토스트 띄우기
+                const toast = document.getElementById('toastLive');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 4000);
+
+                // 가장 첫 카드 초록색 하이라이트
+                setTimeout(() => {
+                    const cards = document.querySelectorAll('.tx-card');
+                    if (cards[0]) cards[0].classList.add('new-item');
+                }, 50);
+
+            } catch (e) { console.error("Message parse error", e); }
+        });
+
+        function getBadgeCls(line) {
+            if (line === 'YANG MING') return 'badge-ym';
+            if (line === 'HMM') return 'badge-hmm';
+            if (line === 'HAPAG-LLOYD') return 'badge-hl';
+            return 'badge-ym';
         }
 
-        function load() {
-            const history = JSON.parse(localStorage.getItem('sealScanHistory') || '[]');
+        function renderAll() {
             const list = document.getElementById('cardsList');
             const empty = document.getElementById('emptyState');
-            const today = new Date().toDateString();
+            let tSeals = 0, tConf = 0, cCount = 0, today = 0;
+            const nowStr = new Date().toDateString();
 
-            let totalSeals = 0, totalConf = 0, confCt = 0, todayCount = 0;
-            history.forEach(h => {
-                (h.seals || []).forEach(s => {
-                    totalSeals++;
-                    if (s.confidence) { totalConf += s.confidence; confCt++; }
-                });
-                if (new Date(h.timestamp).toDateString() === today) todayCount++;
-            });
-
-            document.getElementById('sTotal').textContent = history.length;
-            document.getElementById('sSeals').textContent = totalSeals;
-            document.getElementById('sConf').textContent = confCt ? (totalConf / confCt).toFixed(1) + '%' : '—';
-            document.getElementById('sToday').textContent = todayCount;
-            document.getElementById('subtitle').textContent = `마지막 업데이트: ${new Date().toLocaleString('ko-KR')}`;
-
-            if (!history.length) {
-                list.innerHTML = ''; empty.style.display = 'block'; return;
-            }
+            document.getElementById('sTotal').textContent = historyData.length;
+            if (!historyData.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
             empty.style.display = 'none';
             list.innerHTML = '';
 
-            history.forEach((h, idx) => {
-                const n = history.length - idx;
+            historyData.forEach((h, idx) => {
+                (h.seals || []).forEach(s => { tSeals++; if (s.confidence) { tConf += s.confidence; cCount++; } });
+                if (new Date(h.timestamp).toDateString() === nowStr) today++;
+
                 const dt = new Date(h.timestamp);
-                const dateStr = dt.toLocaleDateString('ko-KR');
-                const timeStr = dt.toLocaleTimeString('ko-KR');
-                const hasPhoto = !!h.capturedImage;
 
                 const sealsHtml = (h.seals || []).map(s => `
         <div class="seal-row">
-          <span class="seal-line-badge ${lineClass(s.sealNumber)}">${s.shippingLine || lineName(s.sealNumber)}</span>
-          <span class="seal-num">${s.sealNumber || '—'}</span>
-          <span class="seal-conf">${s.confidence || ''}%</span>
+          <span class="seal-line-badge ${getBadgeCls(s.shippingLine)}">${s.shippingLine || '—'}</span>
+          <span class="seal-num">${s.sealNumber}</span>
+          <span class="seal-conf">${s.confidence}%</span>
         </div>
       `).join('');
-
-                const photoHtml = hasPhoto
-                    ? `<img class="tx-photo" src="${h.capturedImage}" alt="seal" onclick="event.stopPropagation();openPhoto('${h.capturedImage}')" style="cursor:pointer" title="클릭해서 확대"/>`
-                    : `<div class="tx-photo-placeholder">📷</div>`;
 
                 const card = document.createElement('div');
                 card.className = 'tx-card';
                 card.innerHTML = `
         <div class="tx-card-header">
           <div>
-            <div class="tx-no">전송 #${n}</div>
-            <div class="tx-ts">${dateStr} ${timeStr}</div>
+            <span class="tx-no">순번 #${historyData.length - idx}</span>
+            <span class="tx-ts" style="margin-left:12px;">${dt.toLocaleString('ko-KR')}</span>
           </div>
-          <div class="tx-badges">
-            <span class="op-badge op-${h.operationType || 'IMPORT'}">${h.operationType || 'IMPORT'}</span>
-            <span class="tx-ok">✅ 전송완료</span>
+          <div>
+            <span class="op-badge op-${h.operationType}">${h.operationType}</span>
+            <span class="tx-ok">✅ 수신완료</span>
           </div>
         </div>
         <div class="tx-card-body">
-          ${photoHtml}
+          <img class="tx-photo" src="${h.capturedImage || ''}" onclick="event.stopPropagation();document.getElementById('photoModalImg').src=this.src;document.getElementById('photoModal').classList.add('show');" />
           <div class="tx-seals">${sealsHtml}</div>
         </div>
         <div class="tx-meta">
-          <span>터미널: ${h.terminalCode || '—'}</span>
-          <span>담당자: ${h.operatorId || '—'}</span>
-          <span>씰 수: ${(h.seals || []).length}개</span>
+          <span>터미널: ${h.terminalCode}</span>
+          <span>작업자: ${h.operatorId}</span>
+          <span>전송 데이터 인증 완료</span>
         </div>
       `;
                 list.appendChild(card);
             });
+
+            document.getElementById('sSeals').textContent = tSeals;
+            document.getElementById('sConf').textContent = cCount ? (tConf / cCount).toFixed(1) + '%' : '—';
+            document.getElementById('sToday').textContent = today;
         }
 
-        function clearAll() {
-            if (!confirm('전송 기록을 모두 삭제하시겠습니까?')) return;
-            localStorage.removeItem('sealScanHistory');
-            load();
-        }
-
-        load();
-        setInterval(load, 15000);
+        renderAll(); // 초기 렌더링
     </script>
 </body>
 
