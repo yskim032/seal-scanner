@@ -207,11 +207,13 @@ async function sendToTOS() {
     btnSend.querySelector('span').textContent = '클라우드 전송 중...';
 
     const now = new Date();
+    const msgInput = document.getElementById('tosMessage');
     const payload = {
         timestamp: now.toISOString(),
         terminalCode: document.getElementById('terminalCode').value,
         operationType: document.getElementById('operationType').value,
         operatorId: document.getElementById('operatorId').value,
+        message: msgInput ? msgInput.value.trim() : '',
         capturedImage: App.capturedImageDataURL,
         seals: App.detections.map(s => ({
             shippingLine: s.line, sealNumber: s.number, confidence: +(s.confidence * 100).toFixed(1)

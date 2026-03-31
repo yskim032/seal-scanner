@@ -533,7 +533,12 @@
             const nowStr = new Date().toDateString();
 
             document.getElementById('sTotal').textContent = historyData.length;
-            if (!historyData.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+            if (!historyData.length) {
+                document.getElementById('sSeals').textContent = '0';
+                document.getElementById('sConf').textContent = '—';
+                document.getElementById('sToday').textContent = '0';
+                list.innerHTML = ''; empty.style.display = 'block'; return;
+            }
             empty.style.display = 'none';
             list.innerHTML = '';
 
@@ -573,10 +578,13 @@
           ${imgHtml}
           <div class="tx-seals">${sealsHtml}</div>
         </div>
-        <div class="tx-meta">
-          <span>터미널: ${h.terminalCode}</span>
-          <span>작업자: ${h.operatorId}</span>
-          <span>전송 데이터 인증 완료</span>
+        <div class="tx-meta" style="flex-direction:column; gap:6px;">
+          <div>
+            <span>터미널: ${h.terminalCode}</span>
+            <span>작업자: ${h.operatorId}</span>
+            <span>전송 데이터 인증 완료</span>
+          </div>
+          ${h.message ? `<div style="color:var(--yellow); font-weight:600; font-size:0.8rem;">📝 메모: ${h.message}</div>` : ''}
         </div>
       `;
                 list.appendChild(card);
